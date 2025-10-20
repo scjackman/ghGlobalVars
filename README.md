@@ -1,0 +1,1 @@
+A set of Rhino.Grasshopper components for getting/setting global variables within a GH document. 
