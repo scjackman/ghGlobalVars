@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using Eto.Forms;
 using Grasshopper;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
@@ -17,7 +18,7 @@ namespace GHGlobalVars
     /// new tabs/panels will automatically be created.
     /// </summary>
     public GHGlobalVarsSetter()
-      : base("GHGlobalVars Setter Component", "Setter",
+      : base("GHGlobalVarsSetter", "Setter",
         "A component for setting global variables on the Grasshopper canvas.",
         "GHGlobalVars", "Getters & Setters")
     {
@@ -32,10 +33,8 @@ namespace GHGlobalVars
       // You can often supply default values when creating parameters.
       // All parameters must have the correct access type. If you want 
       // to import lists or trees of values, modify the ParamAccess flag.
-      pManager.AddPlaneParameter("Plane", "P", "Base plane for spiral", GH_ParamAccess.item, Plane.WorldXY);
-      pManager.AddNumberParameter("Inner Radius", "R0", "Inner radius for spiral", GH_ParamAccess.item, 1.0);
-      pManager.AddNumberParameter("Outer Radius", "R1", "Outer radius for spiral", GH_ParamAccess.item, 10.0);
-      pManager.AddIntegerParameter("Turns", "T", "Number of turns between radii", GH_ParamAccess.item, 10);
+      pManager.AddTextParameter("Keys", "K", "Keys for the global variables to be added.", GH_ParamAccess.item);
+      pManager.AddGenericParameter("Values", "V", "Values associated with the provided keys", GH_ParamAccess.item);
 
       // If you want to change properties of certain parameters, 
       // you can use the pManager instance to access them by index:
@@ -49,7 +48,9 @@ namespace GHGlobalVars
     {
       // Use the pManager object to register your output parameters.
       // Output parameters do not have default values, but they too must have the correct access type.
-      pManager.AddCurveParameter("Spiral", "S", "Spiral curve", GH_ParamAccess.item);
+      pManager.AddTextParameter("GlobalVars", "GV", "Globally accessible variables", GH_ParamAccess.item);
+      pManager.AddTextParameter("GlobalVarTypes", "T", "Types of the globally accessible variables", GH_ParamAccess.item);
+
 
       // Sometimes you want to hide a specific parameter from the Rhino preview.
       // You can use the HideParameter() method as a quick way:
@@ -65,66 +66,52 @@ namespace GHGlobalVars
     {
       // First, we need to retrieve all data from the input parameters.
       // We'll start by declaring variables and assigning them starting values.
-      Plane plane = Plane.WorldXY;
-      double radius0 = 0.0;
-      double radius1 = 0.0;
-      int turns = 0;
+      string key = "";
+      object value = null;
 
-      // Then we need to access the input parameters individually. 
-      // When data cannot be extracted from a parameter, we should abort this method.
-      if (!DA.GetData(0, ref plane)) return;
-      if (!DA.GetData(1, ref radius0)) return;
-      if (!DA.GetData(2, ref radius1)) return;
-      if (!DA.GetData(3, ref turns)) return;
+      if (!DA.GetData(0, ref key)) return;
+      if (!DA.GetData(1, ref value)) return;
 
-      // We should now validate the data and warn the user if invalid data is supplied.
-      if (radius0 < 0.0)
+      if (key == "")
       {
-        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Inner radius must be bigger than or equal to zero");
-        return;
-      }
-      if (radius1 <= radius0)
-      {
-        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Outer radius must be bigger than the inner radius");
-        return;
-      }
-      if (turns <= 0)
-      {
-        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Spiral turn count must be bigger than or equal to one");
+        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The key cannot be an empty string");
         return;
       }
 
-      // We're set to create the spiral now. To keep the size of the SolveInstance() method small, 
-      // The actual functionality will be in a different method:
-      Curve spiral = CreateSpiral(plane, radius0, radius1, turns);
+      if (value == null)
+      {
+        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "No value has been provided");
+        return;
+      }
+ 
+      // The actual functionality for setting values and expiring getter components will be in a different methods, called below:
+      SetGlobalVar(key, value);
+      String globalVar = $"'{key}':{value.ToString()}";
+      String globalVarType = value.GetType().ToString();
+      ExpireGetters();
 
       // Finally assign the spiral to the output parameter.
-      DA.SetData(0, spiral);
+      DA.SetData(0, globalVar);
+      DA.SetData(1, globalVarType);
     }
 
-    Curve CreateSpiral(Plane plane, double r0, double r1, Int32 turns)
+    void SetGlobalVar(string key, object value)
     {
-      Line l0 = new Line(plane.Origin + r0 * plane.XAxis, plane.Origin + r1 * plane.XAxis);
-      Line l1 = new Line(plane.Origin - r0 * plane.XAxis, plane.Origin - r1 * plane.XAxis);
+      // Implementation for setting a global variable to the global dictionary.
+      GlobalState.Set(key, value);
+    }
 
-      Point3d[] p0;
-      Point3d[] p1;
-
-      l0.ToNurbsCurve().DivideByCount(turns, true, out p0);
-      l1.ToNurbsCurve().DivideByCount(turns, true, out p1);
-
-      PolyCurve spiral = new PolyCurve();
-
-      for (int i = 0; i < p0.Length - 1; i++)
+    void ExpireGetters()
+    {
+      // Implementation for expiring getter components goes here.
+      var objects = this.OnPingDocument().Objects.OfType<GH_Component>();
+      foreach (var obj in objects)
       {
-        Arc arc0 = new Arc(p0[i], plane.YAxis, p1[i + 1]);
-        Arc arc1 = new Arc(p1[i + 1], -plane.YAxis, p0[i + 1]);
-
-        spiral.Append(arc0);
-        spiral.Append(arc1);
+          if (obj.Name == "GHGlobalVarsGetter")
+          {
+              obj.ExpireSolution(true);
+          }
       }
-
-      return spiral;
     }
 
     /// <summary>
@@ -148,6 +135,6 @@ namespace GHGlobalVars
     /// It is vital this Guid doesn't change otherwise old ghx files 
     /// that use the old ID will partially fail during loading.
     /// </summary>
-    public override Guid ComponentGuid => new Guid("32c8d5ee-2f6d-4c1c-a68f-8967cb20fb90");
+    public override Guid ComponentGuid => new Guid("beb31e00-a775-4858-bf2d-b541bf4ac55a");
   }
 }
