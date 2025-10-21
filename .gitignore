@@ -1,1 +1,9 @@
 .DS_store
+GHGlobalVars/.vscode
+GHGlobalVars/bin
+GHGlobalVars/obj
+GHGlobalVars/Properties
+*.pdb
+*.suo
+*.user
+*.log
