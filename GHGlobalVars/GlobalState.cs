@@ -36,17 +36,16 @@ public static class GlobalState
         return false;
     }
 
-    // Optional: remove a key
-    public static bool Remove(string key)
+    // Get all data
+    public static Dictionary<string, object> GetAll()
     {
-        if (key == null) return false;
         lock (_data)
         {
-            return _data.Remove(key);
+            return new Dictionary<string, object>(_data);
         }
     }
 
-    // Optional: clear all data
+    // Clear all data
     public static void Clear()
     {
         lock (_data)
