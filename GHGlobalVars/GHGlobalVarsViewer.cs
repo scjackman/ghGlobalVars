@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
-using Grasshopper;
 using Grasshopper.Kernel;
-using Rhino.Geometry;
 
 namespace GHGlobalVars
 {
@@ -61,7 +60,7 @@ namespace GHGlobalVars
       List<string> typeList = new List<string>();
       foreach (var val in dict.Values)
       {
-        typeList.Add(val != null ? val.GetType().ToString() : "null");
+        typeList.Add(val != null ? GetTypeName(val) : "null");
       }
       DA.SetDataList(2, typeList);
     }
@@ -70,6 +69,16 @@ namespace GHGlobalVars
     {
       // Implementation for setting a global variable to the global dictionary.
       return GlobalState.GetAll();
+    }
+
+    String GetTypeName(object value)
+    {
+      if (value == null)
+      {
+        return "null";
+      }
+      String typeName = value.GetType().Name;
+      return typeName.Split('.').Last();
     }
 
     /// <summary>
