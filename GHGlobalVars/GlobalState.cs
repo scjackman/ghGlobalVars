@@ -3,10 +3,10 @@ using System.Collections.Generic;
 
 public static class GlobalState
 {
-    // The global dictionary
+    // Global dictionary
     private static readonly Dictionary<string, object> _data = new Dictionary<string, object>();
 
-    // Set a value
+    // Method for setting a value to the dictionary
     public static void Set(string key, object value)
     {
         if (key == null) throw new ArgumentNullException(nameof(key));
@@ -16,7 +16,7 @@ public static class GlobalState
         }
     }
 
-    // Try to get a value safely
+    // Method for safely trying to get a value from the dictionary
     public static bool TryGet<T>(string key, out T value)
     {
         value = default;

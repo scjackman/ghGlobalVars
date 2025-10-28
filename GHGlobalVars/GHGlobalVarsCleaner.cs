@@ -34,25 +34,20 @@ namespace GHGlobalVars
     /// </summary>
     protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
     {
-      // Use the pManager object to register your output parameters.
-      // Output parameters do not have default values, but they too must have the correct access type.
-
-      // Sometimes you want to hide a specific parameter from the Rhino preview.
-      // You can use the HideParameter() method as a quick way:
-      //pManager.HideParameter(0);
+      // This component has no outputs.
     }
 
-    /// <summary>
-    /// This is the method that actually does the work.
-    /// </summary>
-    /// <param name="DA">The DA object can be used to retrieve data from input parameters and 
-    /// to store data in output parameters.</param>
     protected override void SolveInstance(IGH_DataAccess DA)
     {
-      // Implementation for getting all global variables and returning to user.
-      bool clean = false;
-      if (!DA.GetData(0, ref clean)) return;
-      if (clean)
+      // Implementation for clearing the global dictionary.
+      // Declare variables and assigning start values.
+      bool cleanDict = false;
+
+      // Try and retrieve data from input boolean.
+      if (!DA.GetData(0, ref cleanDict)) return;
+
+      // If input bool is true, clear the global dictionary'
+      if (cleanDict)
       {
         ClearGlobalVars();
         ExpireGetters();
@@ -62,14 +57,15 @@ namespace GHGlobalVars
 
     void ClearGlobalVars()
     {
-      // Implementation for setting a global variable to the global dictionary.
+      // Implementation for clearing the global dictionary.
       GlobalState.Clear();
     }
 
     void ExpireGetters()
     {
-      // Implementation for expiring getter components goes here.
-      var objects = this.OnPingDocument().Objects.OfType<GH_Component>();
+      // Implementation for expiring getter components.
+      // Expire all GHGlobalVarsGetter and GHGlobalVarsViewer components in the document and force recompute to show updated dict.      
+      var objects = OnPingDocument().Objects.OfType<GH_Component>();
       foreach (var obj in objects)
       {
           if (obj.Name == "GHGlobalVarsGetter" || obj.Name == "GHGlobalVarsViewer")

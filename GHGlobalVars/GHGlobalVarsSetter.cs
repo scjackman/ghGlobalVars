@@ -30,12 +30,10 @@ namespace GHGlobalVars
       // You can often supply default values when creating parameters.
       // All parameters must have the correct access type. If you want 
       // to import lists or trees of values, modify the ParamAccess flag.
+
       pManager.AddTextParameter("Keys", "K", "Keys for the global variables to be added.", GH_ParamAccess.item);
       pManager.AddGenericParameter("Values", "V", "Values associated with the provided keys", GH_ParamAccess.item);
 
-      // If you want to change properties of certain parameters, 
-      // you can use the pManager instance to access them by index:
-      //pManager[0].Optional = true;
     }
 
     /// <summary>
@@ -45,30 +43,23 @@ namespace GHGlobalVars
     {
       // Use the pManager object to register your output parameters.
       // Output parameters do not have default values, but they too must have the correct access type.
+
       pManager.AddTextParameter("GlobalVars", "GV", "Globally accessible variables", GH_ParamAccess.item);
       pManager.AddTextParameter("GlobalVarTypes", "T", "Types of the globally accessible variables", GH_ParamAccess.item);
 
-
-      // Sometimes you want to hide a specific parameter from the Rhino preview.
-      // You can use the HideParameter() method as a quick way:
-      //pManager.HideParameter(0);
     }
 
-    /// <summary>
-    /// This is the method that actually does the work.
-    /// </summary>
-    /// <param name="DA">The DA object can be used to retrieve data from input parameters and 
-    /// to store data in output parameters.</param>
     protected override void SolveInstance(IGH_DataAccess DA)
     {
-      // First, we need to retrieve all data from the input parameters.
-      // We'll start by declaring variables and assigning them starting values.
+      // Declare variables and assigning start values.
       string key = "";
       object value = null;
 
+      // Retrieve data from input parameters.
       if (!DA.GetData(0, ref key)) return;
       if (!DA.GetData(1, ref value)) return;
 
+      // Input validation.
       if (key == "")
       {
         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The key cannot be an empty string");
@@ -80,28 +71,31 @@ namespace GHGlobalVars
         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "No value has been provided");
         return;
       }
- 
-      // The actual functionality for setting values and expiring getter components will be in a different methods, called below:
+
+      // Add key:value pair to dictionary and expire 'getter' components.
       SetGlobalVar(key, value);
-      String globalVar = $"'{key}':{value.ToString()}";
-      String globalVarType = GetTypeName(value);
       ExpireGetters();
 
-      // Finally assign the spiral to the output parameter.
+      // Prepare output values.
+      String globalVar = $"'{key}':{value}";
+      String globalVarType = GetTypeName(value);
+      
+      // Finally assign values to the output parameters.
       DA.SetData(0, globalVar);
       DA.SetData(1, globalVarType);
     }
 
     void SetGlobalVar(string key, object value)
     {
-      // Implementation for setting a global variable to the global dictionary.
+      // Implementation for setting a variable to the global dictionary.
       GlobalState.Set(key, value);
     }
 
     void ExpireGetters()
     {
-      // Implementation for expiring getter components goes here.
-      var objects = this.OnPingDocument().Objects.OfType<GH_Component>();
+      // Implementation for expiring getter components.
+      // Expire all GHGlobalVarsGetter and GHGlobalVarsViewer components in the document and force recompute to show updated dict.
+      var objects = OnPingDocument().Objects.OfType<GH_Component>();
       foreach (var obj in objects)
       {
         if (obj.Name == "GHGlobalVarsGetter" || obj.Name == "GHGlobalVarsViewer")

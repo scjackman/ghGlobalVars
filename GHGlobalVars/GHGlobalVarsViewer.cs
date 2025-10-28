@@ -41,33 +41,30 @@ namespace GHGlobalVars
       pManager.AddGenericParameter("Values", "V", "All available global variables", GH_ParamAccess.list);
       pManager.AddTextParameter("ValueTypes", "T", "Types of the available global variables", GH_ParamAccess.list);
 
-      // Sometimes you want to hide a specific parameter from the Rhino preview.
-      // You can use the HideParameter() method as a quick way:
-      //pManager.HideParameter(0);
     }
 
-    /// <summary>
-    /// This is the method that actually does the work.
-    /// </summary>
-    /// <param name="DA">The DA object can be used to retrieve data from input parameters and 
-    /// to store data in output parameters.</param>
     protected override void SolveInstance(IGH_DataAccess DA)
     {
       // Implementation for getting all global variables and returning to user.
+      // Call method to get vars from global dictionary.
       Dictionary<string, object> dict = GetGlobalVars();
-      DA.SetDataList(0, dict.Keys);
-      DA.SetDataList(1, dict.Values); 
+
+      // Prepare list of types of the global variables.
       List<string> typeList = new List<string>();
       foreach (var val in dict.Values)
       {
         typeList.Add(val != null ? GetTypeName(val) : "null");
       }
+
+      // Finally assign values to the output parameters.
+      DA.SetDataList(0, dict.Keys);
+      DA.SetDataList(1, dict.Values);
       DA.SetDataList(2, typeList);
     }
 
     Dictionary<string, object> GetGlobalVars()
     {
-      // Implementation for setting a global variable to the global dictionary.
+      // Implementation for getting all variables from the global dictionary.
       return GlobalState.GetAll();
     }
 

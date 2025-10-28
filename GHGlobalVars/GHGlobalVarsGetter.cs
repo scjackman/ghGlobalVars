@@ -32,9 +32,6 @@ namespace GHGlobalVars
       // to import lists or trees of values, modify the ParamAccess flag.
       pManager.AddTextParameter("Key", "K", "The key of the global variable to get.", GH_ParamAccess.item);
 
-      // If you want to change properties of certain parameters, 
-      // you can use the pManager instance to access them by index:
-      //pManager[0].Optional = true;
     }
 
     /// <summary>
@@ -47,40 +44,40 @@ namespace GHGlobalVars
       pManager.AddGenericParameter("Value", "V", "Value associated with the input key", GH_ParamAccess.item);
       pManager.AddTextParameter("ValueType", "T", "Type of the value associated with the input key", GH_ParamAccess.item);
 
-      // Sometimes you want to hide a specific parameter from the Rhino preview.
-      // You can use the HideParameter() method as a quick way:
-      //pManager.HideParameter(0);
     }
 
-    /// <summary>
-    /// This is the method that actually does the work.
-    /// </summary>
-    /// <param name="DA">The DA object can be used to retrieve data from input parameters and 
-    /// to store data in output parameters.</param>
     protected override void SolveInstance(IGH_DataAccess DA)
     {
-      // Implementation for getting a global variable from the 'sticky' dictionary.
+      // Declare variables and assigning start values.
       string key = "";
       object value = null;
 
+      // Retrieve data from input parameters.
       if (!DA.GetData(0, ref key)) return;
 
+      // Input validation.
       if (key == "")
       {
         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The key cannot be an empty string");
         return;
       }
 
+      // Get the global variable.
       value = GetGlobalVar(key);
+
+      // Finally assign values to the output parameters.
       DA.SetData(0, value != null ? value : "No value found for the provided key");
       DA.SetData(1, value != null ? GetTypeName(value) : "null");
     }
 
     object GetGlobalVar(string key)
     {
-      // Implementation for setting a global variable to the global dictionary.
-      GlobalState.TryGet<object>(key, out var value);
-      return value;
+      // Implementation for getting a variable from the global dictionary.
+      if (GlobalState.TryGet<object>(key, out var value))
+      {
+        return value;
+      } 
+      return null;
     }
 
     String GetTypeName(object value)
